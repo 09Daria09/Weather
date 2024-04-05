@@ -1,0 +1,192 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e0f7fa;
+            color: #333;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .search-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+            .search-container input[type="text"] {
+                width: 80%;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+            }
+
+            .search-container button {
+                background-color: #29b6f6; 
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                cursor: pointer;
+                border-radius: 5px;
+                font-size: 16px;
+            }
+
+        .weather-container, .hourly-weather {
+            margin-top: 20px;
+        }
+
+        .weather-card, .hour {
+            background: #81d4fa; 
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .hourly-weather-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .hour img {
+            width: 80px;
+            height: 80px;
+        }
+
+        @media (max-width: 600px) {
+            .search-container input[type="text"] {
+                width: 70%;
+            }
+
+            .hourly-weather-content {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+        }
+    </style>
+
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Weather Forecast</h1>
+            <p>Enter a city name to get the weather forecast</p>
+        </header>
+        <div class="search-container">
+            <input type="text" name="city" id="city" placeholder="Enter city name">
+            <button type="button" id="search"><i class="fas fa-search"></i> Search</button>
+        </div>
+        <div class="weather-container" id="weather-container">
+        </div>
+        <div class="hourly-weather" id="hourly-weather">
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchButton = document.getElementById('search');
+            const cityInput = document.getElementById('city');
+            const weatherContainer = document.getElementById('weather-container');
+            const hourlyWeatherContainer = document.getElementById('hourly-weather');
+            const apiKey = '7fe324f43f5370db7712fc7a85f0f07e'; 
+
+            async function fetchWeather(city) {
+                const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            }
+
+            async function fetchHourlyWeather(city) {
+                const hourlyApiUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric`;
+                const response = await fetch(hourlyApiUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            }
+
+            function generateWeatherHTML(data) {
+                return `
+            <div class="weather-card">
+                <h2>${data.name}</h2>
+                <p>${new Date().toLocaleDateString()}</p>
+                <p>${data.weather[0].description}</p>
+                <img src="http://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png" alt="Weather icon" style="width: 100px; height: 100px;">
+                <p>Temperature: ${data.main.temp}°C</p>
+                <p>Min Temperature: ${data.main.temp_min}°C</p>
+                <p>Max Temperature: ${data.main.temp_max}°C</p>
+                <p>Wind Speed: ${data.wind.speed} m/s</p>
+            </div>
+        `;
+            }
+
+            function generateHourlyWeatherHTML(data) {
+                return `
+            <div class="hourly-weather-content">
+                ${data.list.slice(0, 6).map(hour => `
+                    <div class="hour">
+                        <p>${new Date(hour.dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <img src="http://openweathermap.org/img/wn/${hour.weather[0].icon}@2x.png" alt="Weather icon">
+                        <p>${hour.weather[0].description}</p>
+                        <p>${hour.main.temp}°C</p>
+                        <p>${hour.wind.speed} m/s</p>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+            }
+
+            searchButton.addEventListener('click', async function () {
+                const city = cityInput.value.trim();
+
+                if (!city) {
+                    alert('Please enter a city name.');
+                    return;
+                }
+
+                try {
+                    const weatherData = await fetchWeather(city);
+                    weatherContainer.innerHTML = generateWeatherHTML(weatherData);
+
+                    const hourlyData = await fetchHourlyWeather(city);
+                    hourlyWeatherContainer.innerHTML = generateHourlyWeatherHTML(hourlyData);
+                } catch (error) {
+                    console.error('Error:', error);
+                    weatherContainer.innerHTML = `<p>${error.message}</p>`;
+                    hourlyWeatherContainer.innerHTML = ''; 
+                }
+            });
+        });
+
+
+    </script>
+</body>
+</html>
